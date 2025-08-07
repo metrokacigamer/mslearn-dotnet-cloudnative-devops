@@ -31,9 +31,20 @@ jobs:
           creds: '${{ secrets.AZURE_CREDENTIALS }}'
 
       # Builds and pushes an image up to your Azure Container Registry
-      - name: Build and push image to ACR
+      - name: Azure Container Registry login
+        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+
+      - name: Build Docker image locally
         run: |
-          az acr build --file ${{ env.DOCKER_PATH }} --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} .
+          docker build -f ${{ env.DOCKER_PATH }} -t $IMAGE_NAME:latest .
+
+      - name: Tag Docker image
+        run: |
+          docker tag $IMAGE_NAME:latest $ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG
+
+      - name: Push Docker image to ACR
+        run: |
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG
   deploy:
     permissions:
       actions: read
